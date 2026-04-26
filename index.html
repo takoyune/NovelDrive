@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' blob: https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleusercontent.com https://*.googleapis.com; connect-src 'self' blob: https://*.googleapis.com https://accounts.google.com https://apis.google.com; frame-src 'self' https://*.google.com https://*.googleapis.com;">
+
+
+  
+  <title>NovelDrive — Premium EPUB Reader</title>
+  
+  <!-- PWA & Theme Configuration -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- External CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XAhECChYSUHR+u+/Vo9SNoYvj+kL6Q2Apx4E12V2iA00p++R9D7U54T1I8t++XjCgW3k7v0/p1oYl2e1VvE8Wg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
+  <!-- Application Entry -->
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <!-- 
+    ========================================================================
+    GOOGLE CLOUD SETUP INSTRUCTIONS
+    1. Go to console.cloud.google.com -> APIs & Services -> Credentials
+    2. Create an OAuth 2.0 Client ID (Web Application).
+    3. Add Authorized JavaScript Origins: https://yourusername.github.io
+    4. Enable Google Drive API and Google Picker API.
+    5. Paste your Client ID and API Key into the CONFIG block at the top of app.js.
+    ========================================================================
+  -->
+
+  <!-- Offline / Global Toast Notifications -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- App Views -->
+  <main id="app-container">
+    
+    <!-- LANDING VIEW -->
+    <section id="view-landing" class="view active">
+      <div class="landing-background">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="landing-content">
+        <h1 class="landing-title">NovelDrive</h1>
+        <p class="landing-subtitle">Your personal library, seamlessly synced through Google Drive.</p>
+        <button id="btn-connect" class="primary-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm12-140a12,12,0,1,1-12-12A12,12,0,0,1,140,76Zm-4,44a12,12,0,0,1-12,12,12,12,0,0,1,0-24,12,12,0,0,1,12,12Zm-12,36a12,12,0,1,1,12,12A12,12,0,0,1,124,156Z"></path></svg>
+          Connect Google Drive
+        </button>
+      </div>
+    </section>
+
+    <!-- LIBRARY VIEW -->
+    <section id="view-library" class="view hidden">
+      <header class="main-header">
+        <h1 class="logo">NovelDrive</h1>
+        <div class="user-controls">
+          <button id="btn-pick" class="accent-btn" aria-label="Open Drive Picker">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM156,128a28,28,0,1,1-28-28A28,28,0,0,1,156,128Z"></path></svg>
+            Add Book
+          </button>
+          <div class="profile-card">
+            <img id="user-avatar" src="" alt="User Avatar" class="avatar hidden">
+            <span id="user-email" class="email"></span>
+            <button id="btn-signout" class="icon-btn" aria-label="Sign Out">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M112,216a8,8,0,0,1-8,8H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h56a8,8,0,0,1,0,16H48V208h56A8,8,0,0,1,112,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L196.69,120H104a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,221.66,122.34Z"></path></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div class="bookshelf">
+        <h2>Your Shelf</h2>
+        <div id="books-grid" class="books-grid">
+          <!-- Dynamically populated by db.js / app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- READER VIEW -->
+    <section id="view-reader" class="view hidden">
+      <!-- Reader Chrome (Top Header) -->
+      <header class="reader-header chrome-element">
+        <button id="btn-reader-close" class="icon-btn" aria-label="Back to Shelf">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H51.31l46.35,46.34a8,8,0,0,1-11.32,11.32l-60-60a8,8,0,0,1,0-11.32l60-60a8,8,0,0,1,11.32,11.32L51.31,120H216A8,8,0,0,1,224,128Z"></path></svg>
+        </button>
+        <span id="reader-title" class="reader-title">Reading...</span>
+        <button id="btn-bookmark" class="icon-btn" aria-label="Toggle Bookmark">
+          <svg id="bookmark-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+        </button>
+      </header>
+
+      <!-- ePub Viewer Container -->
+      <div id="epub-viewer" class="epub-viewer"></div>
+
+      <!-- Navigation overlays for desktop tap/click areas -->
+      <div id="nav-left" class="nav-overlay" aria-label="Previous Page"></div>
+      <div id="nav-right" class="nav-overlay" aria-label="Next Page"></div>
+
+      <!-- Reader Chrome (Bottom Toolbar) -->
+      <footer class="reader-footer chrome-element">
+        <div class="floating-toolbar">
+          <button id="btn-prev" class="icon-btn" aria-label="Previous Page">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"></path></svg>
+          </button>
+          
+          <div class="toolbar-center">
+            <span id="reading-percentage" class="stat-text">0%</span>
+            <span id="chapter-name" class="stat-text">Extracting Table of Contents...</span>
+          </div>
+
+          <button id="btn-settings" class="icon-btn" aria-label="Reader Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160ZM232,128a104.16,104.16,0,0,1-9.15,42.49l13.1,13.1a16.08,16.08,0,0,1,0,22.63l-21.72,21.72a16.08,16.08,0,0,1-22.63,0l-13.1-13.1a104,104,0,0,1-81,0l-13.1,13.1a16.08,16.08,0,0,1-22.63,0L39.05,206.22a16.08,16.08,0,0,1,0-22.63l13.1-13.1a104,104,0,0,1,0-81l-13.1-13.1a16.08,16.08,0,0,1,0-22.63L60.77,52.05a16.08,16.08,0,0,1,22.63,0l13.1,13.1a104,104,0,0,1,81,0l13.1-13.1a16.08,16.08,0,0,1,22.63,0l21.72,21.72a16.08,16.08,0,0,1,0,22.63l-13.1,13.1A104.16,104.16,0,0,1,232,128Z"></path></svg>
+          </button>
+
+          <button id="btn-next" class="icon-btn" aria-label="Next Page">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg>
+          </button>
+        </div>
+      </footer>
+    </section>
+
+  </main>
+
+  <!-- LOADING MODAL (Global) -->
+  <dialog id="modal-loading" class="native-modal">
+    <div class="modal-content loading-box">
+      <div class="spinner"></div>
+      <h3 id="loading-text">Connecting to Google Drive...</h3>
+      <progress id="fetch-progress" max="100" value="0" class="hidden"></progress>
+      <button id="btn-cancel-load" class="secondary-btn hidden">Cancel</button>
+    </div>
+  </dialog>
+
+  <!-- ERROR MODAL -->
+  <dialog id="modal-error" class="native-modal">
+    <div class="modal-content">
+      <h3 class="error-title">An Error Occurred</h3>
+      <p id="error-message">Failed to connect or download file.</p>
+      <div class="modal-actions">
+        <button id="btn-error-close" class="secondary-btn">Dismiss</button>
+        <button id="btn-error-retry" class="primary-btn hidden">Retry</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- SETTINGS MODAL (Reader Controls) -->
+  <dialog id="modal-settings" class="native-modal bottom-sheet">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Display Settings</h3>
+        <button id="btn-settings-close" class="close-icon-btn" aria-label="Close Settings">✕</button>
+      </div>
+      
+      <div class="setting-group">
+        <label>Theme</label>
+        <div class="theme-buttons">
+          <button data-theme="light" class="theme-btn light">Light</button>
+          <button data-theme="sepia" class="theme-btn sepia">Sepia</button>
+          <button data-theme="dark" class="theme-btn dark">Dark</button>
+          <button data-theme="system" class="theme-btn system">System</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label for="font-family-select">Font Family</label>
+        <select id="font-family-select">
+          <option value="'DM Sans', sans-serif">DM Sans (Default)</option>
+          <option value="'Crimson Pro', serif">Crimson Pro (Serif)</option>
+          <option value="system-ui, sans-serif">System UI</option>
+          <option value="monospace">Monospace</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="font-size-slider">Font Size (<span id="font-size-val">100%</span>)</label>
+        <input type="range" id="font-size-slider" min="14" max="32" value="18">
+      </div>
+
+      <div class="setting-group">
+        <label for="line-height-slider">Line Height</label>
+        <input type="range" id="line-height-slider" min="1.0" max="2.0" step="0.1" value="1.5">
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

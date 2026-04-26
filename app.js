@@ -227,12 +227,24 @@ class App {
    * @param {string} fileName 
    */
   async downloadAndLoadEpub(fileId, fileName) {
-    this.showLoading(`Downloading "${fileName}"...`, true);
+    const progressEl = document.getElementById('fetch-progress');
+    progressEl.classList.remove('hidden');
+    progressEl.value = 0;
+    this.showLoading(`Downloading "${fileName}" (0%)`, true);
     this.currentAbortController = new AbortController();
 
     try {
-      const arrayBuffer = await this.auth.fetchFile(fileId, this.currentAbortController.signal);
+      const arrayBuffer = await this.auth.fetchFile(
+        fileId, 
+        this.currentAbortController.signal,
+        (percent) => {
+          progressEl.value = percent;
+          document.getElementById('loading-text').textContent = `Downloading "${fileName}" (${percent}%)`;
+        }
+      );
       this.showLoading('Parsing ePub package...');
+      progressEl.classList.add('hidden');
+
       
       await this.reader.loadBook(fileId, arrayBuffer);
       await this.reader.render('epub-viewer', this.settings);

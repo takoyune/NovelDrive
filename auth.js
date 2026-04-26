@@ -238,9 +238,10 @@ export class AuthManager {
    * Abortable downloader fetching raw ePub data
    * @param {string} fileId
    * @param {AbortSignal} signal
+   * @param {Function} progressCallback
    * @returns {Promise<ArrayBuffer>}
    */
-  async fetchFile(fileId, signal) {
+  async fetchFile(fileId, signal, progressCallback) {
     const token = await this.ensureToken();
     const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
     
@@ -250,7 +251,36 @@ export class AuthManager {
     });
 
     if (!response.ok) throw new Error('Error downloading EPUB from Google Drive.');
-    return await response.arrayBuffer();
+    
+    const contentLength = response.headers.get('content-length');
+    if (!contentLength || !progressCallback) {
+      return await response.arrayBuffer();
+    }
+
+    const total = parseInt(contentLength, 10);
+    let loaded = 0;
+
+    const reader = response.body.getReader();
+    const chunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+      progressCallback(Math.round((loaded / total) * 100));
+    }
+
+    const allChunks = new Uint8Array(loaded);
+    let position = 0;
+    for (const chunk of chunks) {
+      allChunks.set(chunk, position);
+      position += chunk.length;
+    }
+
+    return allChunks.buffer;
   }
+
 }
 export default AuthManager;

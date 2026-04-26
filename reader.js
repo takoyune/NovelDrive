@@ -83,20 +83,14 @@ export class ReaderManager {
       await this.rendition.display();
     }
 
-    // Build or restore overall percentage targets
+    // Restore overall targets lazily if cached
     this.book.ready.then(async () => {
       const storedData = await this.db.getBook(this.currentFileId);
       if (storedData && storedData.locations) {
         this.book.locations.load(storedData.locations);
-      } else {
-        await this.book.locations.generate(1000);
-        const locsString = this.book.locations.save();
-        await this.db.saveBook({
-          fileId: this.currentFileId,
-          locations: locsString
-        });
       }
     }).catch(() => {});
+
 
 
     // Relocation handlers
@@ -146,8 +140,14 @@ export class ReaderManager {
   handleRelocation(location) {
     clearTimeout(this.saveTimeout);
 
+    let progressPercent = 0;
     const percentageValue = this.book.locations.percentageFromCfi(location.start.cfi);
-    const progressPercent = Math.round((percentageValue || 0) * 100);
+    if (percentageValue !== null && percentageValue !== undefined && percentageValue > 0) {
+      progressPercent = Math.round(percentageValue * 100);
+    } else if (this.book.spine && this.book.spine.length) {
+      progressPercent = Math.round((location.start.index / this.book.spine.length) * 100);
+    }
+
 
     // Update UI labels immediately
     const labelUI = document.getElementById('reading-percentage');

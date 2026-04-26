@@ -83,10 +83,21 @@ export class ReaderManager {
       await this.rendition.display();
     }
 
-    // Build overall percentage targets
-    this.book.ready.then(() => {
-      this.book.locations.generate(1000).catch(() => {});
-    });
+    // Build or restore overall percentage targets
+    this.book.ready.then(async () => {
+      const storedData = await this.db.getBook(this.currentFileId);
+      if (storedData && storedData.locations) {
+        this.book.locations.load(storedData.locations);
+      } else {
+        await this.book.locations.generate(1000);
+        const locsString = this.book.locations.save();
+        await this.db.saveBook({
+          fileId: this.currentFileId,
+          locations: locsString
+        });
+      }
+    }).catch(() => {});
+
 
     // Relocation handlers
     this.rendition.on('relocated', (location) => {

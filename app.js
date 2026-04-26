@@ -248,6 +248,26 @@ class App {
       avatar.classList.remove('hidden');
     }
     
+    try {
+      this.showLoading('Syncing Cloud Shelf...');
+      const files = await this.auth.listAllEpubs();
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        await db.saveBook({
+          fileId: file.id,
+          title: file.name.replace('.epub', '').replace('.EPUB', '').trim(),
+          author: 'Cloud Sync',
+          coverDataUrl: file.thumbnailLink || ''
+        });
+      }
+    } catch (e) {
+      console.warn('Initial cloud sync failed:', e);
+    } finally {
+      this.hideLoading();
+    }
+
+    
     await this.refreshLibraryGrid();
   }
 

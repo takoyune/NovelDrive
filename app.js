@@ -45,13 +45,22 @@ class App {
 
     try {
       await this.auth.init();
-      // Test if user is already logged in
-      const profile = await this.auth.getUserProfile();
-      this.handleAuthSuccess(profile);
+      
+      if (localStorage.getItem('noveldrive_logged_in') === 'true') {
+        try {
+          await this.auth.ensureToken(true); // silent
+          const profile = await this.auth.getUserProfile();
+          this.handleAuthSuccess(profile);
+          return;
+        } catch (e) {
+          console.warn('Persistent silent sign-in failed');
+        }
+      }
+      this.switchView('view-landing');
     } catch (e) {
-      // Stay on Landing View
       this.switchView('view-landing');
     }
+
   }
 
   /**
@@ -72,7 +81,9 @@ class App {
     document.getElementById('btn-connect').addEventListener('click', async () => {
       this.showLoading('Authorizing Google Account...');
       try {
+        await this.auth.ensureToken(false);
         const profile = await this.auth.getUserProfile();
+        localStorage.setItem('noveldrive_logged_in', 'true');
         this.handleAuthSuccess(profile);
       } catch (e) {
         this.showError('Authentication failed. Check your API keys and configuration.');
@@ -81,11 +92,14 @@ class App {
       }
     });
 
+
     // Sign Out
     document.getElementById('btn-signout').addEventListener('click', async () => {
+      localStorage.removeItem('noveldrive_logged_in');
       await this.auth.signOut();
       this.switchView('view-landing');
     });
+
 
     // Open Picker
     document.getElementById('btn-pick').addEventListener('click', async () => {

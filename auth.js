@@ -47,9 +47,10 @@ export class AuthManager {
 
   /**
    * Ensures a valid token exists, requesting one silently or via prompt if missing
+   * @param {boolean} silent
    * @returns {Promise<string>} Access Token
    */
-  async ensureToken() {
+  async ensureToken(silent = false) {
     if (this.accessToken && Date.now() < this.expiresAt - 5 * 60 * 1000) {
       return this.accessToken;
     }
@@ -63,11 +64,12 @@ export class AuthManager {
         return;
       }
 
-      // If we don't have an existing token, prompt the user. Otherwise, request silently.
-      const promptType = this.accessToken ? '' : 'select_account';
+      // 'none' handles non-interactive silent login
+      const promptType = silent ? 'none' : (this.accessToken ? '' : 'select_account');
       this.tokenClient.requestAccessToken({ prompt: promptType });
     });
   }
+
 
   /**
    * Fetches the current Google User Profile (email and avatar)

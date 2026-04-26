@@ -99,7 +99,46 @@ class App {
       }
     });
 
+    // Open Folder Picker & Auto-Read
+    document.getElementById('btn-pick-folder').addEventListener('click', async () => {
+      try {
+        const folder = await this.auth.openFolderPicker();
+        this.showLoading(`Scanning "${folder.name}" for EPUBs...`);
+        const files = await this.auth.listFiles(folder.id);
+        
+        if (files.length === 0) {
+          this.toast('No EPUB files found in selected folder.');
+          this.hideLoading();
+          return;
+        }
+
+        this.showLoading(`Found ${files.length} books. Fetching metadata...`);
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          this.showLoading(`Syncing book [${i + 1}/${files.length}]: ${file.name}`);
+          
+          try {
+            const arrayBuffer = await this.auth.fetchFile(file.id);
+            await this.reader.loadBook(file.id, arrayBuffer);
+            await this.reader.unloadBook();
+          } catch (e) {
+            console.warn(`Failed to auto-read metadata for ${file.name}:`, e);
+          }
+        }
+        
+        this.toast(`Synchronized ${files.length} files successfully.`);
+        await this.refreshLibraryGrid();
+      } catch (e) {
+        if (e.message !== 'Folder selection cancelled') {
+          this.showError(e.message || 'Error processing folder.');
+        }
+      } finally {
+        this.hideLoading();
+      }
+    });
+
     // Reader UI buttons
+
     document.getElementById('btn-reader-close').addEventListener('click', async () => {
       this.showLoading('Saving progress...');
       await this.reader.unloadBook();

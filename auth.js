@@ -139,8 +139,70 @@ export class AuthManager {
   }
 
   /**
+   * Invokes Google Picker UI for Folder selection
+   * @returns {Promise<{id: string, name: string}>}
+   */
+  async openFolderPicker() {
+    const token = await this.ensureToken();
+
+    return new Promise((resolve, reject) => {
+      const showPickerUI = () => {
+        const viewFolders = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+          .setMimeTypes('application/vnd.google-apps.folder')
+          .setSelectFolderEnabled(true);
+
+        const picker = new google.picker.PickerBuilder()
+          .addView(viewFolders)
+          .setOAuthToken(token)
+          .setDeveloperKey(this.config.API_KEY)
+          .setCallback((data) => {
+            if (data.action === google.picker.Action.PICKED) {
+              const doc = data.docs[0];
+              resolve({ id: doc.id, name: doc.name });
+            } else if (data.action === google.picker.Action.CANCEL) {
+              reject(new Error('Folder selection cancelled'));
+            }
+          })
+          .build();
+
+        picker.setVisible(true);
+      };
+
+      if (!window.gapi || !window.google.picker) {
+        if (window.gapi) {
+          gapi.load('picker', { callback: showPickerUI });
+        } else {
+          reject('Google Picker scripts not loaded.');
+        }
+      } else {
+        showPickerUI();
+      }
+    });
+  }
+
+  /**
+   * Queries EPUB files inside a specific directory
+   * @param {string} folderId
+   * @returns {Promise<Array<{id: string, name: string}>>}
+   */
+  async listFiles(folderId) {
+    const token = await this.ensureToken();
+    const query = `'${folderId}' in parents and mimeType='application/epub+zip' and trashed=false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`;
+    
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!res.ok) throw new Error('Failed to query files in folder.');
+    const data = await res.json();
+    return data.files || [];
+  }
+
+  /**
    * Securely signs the user out
    */
+
   async signOut() {
     if (this.accessToken) {
       google.accounts.oauth2.revoke(this.accessToken, () => {

@@ -112,19 +112,18 @@ class App {
           return;
         }
 
-        this.showLoading(`Found ${files.length} books. Fetching metadata...`);
+        this.showLoading(`Syncing ${files.length} books metadata...`);
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          this.showLoading(`Syncing book [${i + 1}/${files.length}]: ${file.name}`);
           
-          try {
-            const arrayBuffer = await this.auth.fetchFile(file.id);
-            await this.reader.loadBook(file.id, arrayBuffer);
-            await this.reader.unloadBook();
-          } catch (e) {
-            console.warn(`Failed to auto-read metadata for ${file.name}:`, e);
-          }
+          await db.saveBook({
+            fileId: file.id,
+            title: file.name.replace('.epub', '').replace('.EPUB', '').trim(),
+            author: 'Cloud Sync',
+            coverDataUrl: file.thumbnailLink || ''
+          });
         }
+
         
         this.toast(`Synchronized ${files.length} files successfully.`);
         await this.refreshLibraryGrid();

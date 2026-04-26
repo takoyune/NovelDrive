@@ -188,7 +188,8 @@ export class AuthManager {
   async listFiles(folderId) {
     const token = await this.ensureToken();
     const query = `'${folderId}' in parents and mimeType='application/epub+zip' and trashed=false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,thumbnailLink)`;
+
     
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
